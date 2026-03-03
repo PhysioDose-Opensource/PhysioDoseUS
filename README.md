@@ -25,8 +25,8 @@ Dr. Juan Serrano-Ferrer https://orcid.org/0009-0001-6080-2772
 Dr. Jorge Cazorla Gonzalez https://orcid.org/0000-0002-4797-8044
 Nil Jordà Boixet https://orcid.org/0000-0002-2071-6423
 Nuria Puigtió Rebollo https://orcid.org/0000-0003-4417-1824
-Xavier Garcia Rodriguez
-Contacto Institucional: jserrano@euses.cat
+Xavier Garcia Rodriguez. 
+Contacto: jserrano@euses.cat
 
 Cita Obligatoria (Citation Requirement) 📝
 
