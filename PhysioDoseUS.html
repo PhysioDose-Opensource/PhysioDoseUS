@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioDoseUS - Dosimetría de Ultrasonido</title>
+    <style>
+        :root {
+            --primary-blue: #0ea5e9;
+            --dark-blue: #0369a1;
+            --light-blue: #e0f2fe;
+            --bg-gray: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --warning-bg: #fef08a;
+            --warning-text: #854d0e;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+            --success-bg: #dcfce3;
+            --success-text: #166534;
+            --border-color: #e2e8f0;
+            --tab-inactive: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body { background-color: var(--bg-gray); color: var(--text-main); line-height: 1.6; padding: 20px; }
+
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+        @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } }
+
+        header { text-align: center; margin-bottom: 10px; grid-column: 1 / -1; }
+        header h1 { color: var(--dark-blue); font-size: 2.2rem; margin-bottom: 5px; font-weight: 800; letter-spacing: -0.5px;}
+        header p.subtitle { color: var(--text-main); font-size: 1.1rem; font-weight: 500;}
+        header p.credits { color: var(--text-muted); font-size: 0.85rem; margin-top: 5px; font-style: italic;}
+
+        /* Tabs Navigation */
+        .tabs-container { grid-column: 1 / -1; display: flex; justify-content: center; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 15px; font-size: 0.95rem; font-weight: bold; border: none; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.3s; background-color: var(--tab-inactive); color: #475569; border-bottom: 4px solid transparent; flex: 1; min-width: 250px; max-width: 400px; text-align: center;}
+        .tab-btn:hover { background-color: #94a3b8; color: white;}
+        .tab-btn.active { background-color: var(--primary-blue); color: white; border-bottom: 4px solid var(--dark-blue); }
+
+        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid var(--border-color); }
+        h2 { font-size: 1.25rem; color: var(--dark-blue); margin-bottom: 15px; border-bottom: 2px solid var(--light-blue); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
+
+        .form-group { margin-bottom: 15px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px var(--light-blue); }
+        .input-highlight { background-color: #f0fdf4; border-color: #86efac; font-weight: bold; color: var(--success-text);}
+
+        .hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; display: block; line-height: 1.3;}
+        .alert { padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-top: 5px; display: none; font-weight: 500;}
+        .alert-warning { background-color: var(--warning-bg); color: var(--warning-text); display: block; }
+        .alert-danger { background-color: var(--danger-bg); color: var(--danger-text); display: block; border-left: 4px solid #ef4444;}
+        .alert-success { background-color: var(--success-bg); color: var(--success-text); display: block; border-left: 4px solid #22c55e;}
+
+        /* Potenciómetro */
+        .gauge-wrapper { margin-top: 15px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc; }
+        .gauge-title { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: var(--text-main); display: flex; justify-content: space-between;}
+        .gauge-container { position: relative; width: 100%; height: 25px; margin-top: 5px; }
+        .gauge-wedge { width: 100%; height: 100%; background: linear-gradient(to right, #3b82f6 0%, #22c55e 30%, #eab308 65%, #ef4444 90%); clip-path: polygon(0 50%, 100% 0, 100% 100%); }
+        .gauge-marker { position: absolute; top: -5px; bottom: -5px; width: 4px; background: #0f172a; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,0.5); left: 0%; transition: left 0.4s ease-out; z-index: 10; }
+        .gauge-marker::after { content: ''; position: absolute; top: -6px; left: -4px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #0f172a; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .btn { flex: 1; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px; border: none; transition: all 0.2s; }
+        .btn-primary { background-color: var(--primary-blue); color: white; }
+        .btn-primary:hover { background-color: var(--dark-blue); }
+        .btn-secondary { background-color: var(--bg-gray); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: #e2e8f0; }
+
+        .report-area { width: 100%; height: 160px; padding: 10px; border: 1px dashed var(--primary-blue); border-radius: 6px; background-color: #f8fafc; resize: none; font-family: monospace; font-size: 0.85rem; margin-bottom: 5px; line-height: 1.4; }
+        
+        /* Teoría y Evidencia */
+        .theory-box { background-color: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 0.9rem; margin-top: 20px; }
+        .theory-box h3 { color: var(--dark-blue); margin-bottom: 10px; font-size: 1.1rem; }
+        .theory-box p { margin-bottom: 10px; }
+        .theory-box .highlight-text { background-color: #e0f2fe; padding: 2px 5px; border-radius: 3px; font-weight: 600; color: #0369a1;}
+        .evidence-list { margin-left: 20px; font-size: 0.85rem; color: #475569; margin-bottom: 10px;}
+        .evidence-list li { margin-bottom: 6px; }
+        
+        .clinical-pearl { background-color: #fef9c3; border-left: 4px solid #eab308; padding: 12px; border-radius: 0 4px 4px 0; font-size: 0.85rem; margin-top: 15px; color: #854d0e; }
+        .clinical-pearl strong { color: #713f12; }
+        
+        .references-title { font-size: 0.95rem; color: var(--dark-blue); margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-weight: 600;}
+        .references { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; padding-left: 20px;}
+        .references li { margin-bottom: 8px; line-height: 1.4;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>PhysioDoseUS</h1>
+        <p class="subtitle">Calculadora Clínica de Dosimetría para Ultrasonido Terapéutico</p>
+        <p class="credits">Desarrollado por: Dr. Juan Serrano-Ferrer, Dr. Jorge Cazorla Gonzalez, Nil Jordà Boixet, Nuria Puigtió Rebollo, Xavier Garcia Rodriguez<br>Contacto: <a href="mailto:jserrano@euses.cat" style="color: var(--primary-blue); text-decoration: none;">jserrano@euses.cat</a></p>
+    </header>
+
+    <!-- Sistema de Pestañas (Tabs) -->
+    <div class="tabs-container">
+        <button id="tab-continuo" class="tab-btn active">Continuo (Habitual en termoterapia)</button>
+        <button id="tab-pulsado" class="tab-btn">Pulsado (Habitual en usos atérmicos)</button>
+    </div>
+
+    <!-- Columna Izquierda: Entradas -->
+    <div class="card">
+        <h2>1. Parámetros Físicos y Clínicos</h2>
+        
+        <div class="form-row">
+            <div class="form-group" id="group_frecuencia">
+                <label for="frecuencia">Frecuencia</label>
+                <select id="frecuencia">
+                    <option value="1">1 MHz (Profundo, 1-5 cm)</option>
+                    <option value="3">3 MHz (Superficial, 1-2 cm)</option>
+                </select>
+            </div>
+            <div class="form-group" id="group_duty_cycle" style="display: none;">
+                <label for="duty_cycle">Ciclo de Trabajo</label>
+                <select id="duty_cycle">
+                    <option value="10">10%</option>
+                    <option value="20" selected>20%</option>
+                    <option value="50">50%</option>
+                </select>
+            </div>
+            <div class="form-group" id="group_duty_cycle_fixed">
+                <label>Ciclo de Trabajo</label>
+                <input type="text" value="100% (Continuo)" disabled style="background-color: #f1f5f9; color: #64748b;">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="are_select">ARE del cabezal (cm²)</label>
+                <select id="are_select">
+                    <option value="5" selected>5.0 cm²</option>
+                    <option value="2.5">2.5 cm²</option>
+                    <option value="1">1.0 cm²</option>
+                    <option value="custom">Otro...</option>
+                </select>
+                <input type="number" id="are_custom" placeholder="Ej. 4.0" step="0.1" style="display:none; margin-top:5px;">
+            </div>
+            <div class="form-group">
+                <label for="bnr">BNR del equipo (Máx)</label>
+                <input type="number" id="bnr" placeholder="Ej. 5" step="0.5" value="5.0" min="1">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="area_tratar">Área a tratar (cm²)</label>
+                <input type="number" id="area_tratar" placeholder="Ej. 10" step="0.5" value="10">
+            </div>
+            <div class="form-group">
+                <label for="tiempo_aplicado">Tiempo (minutos) <span style="font-weight: normal; font-size: 0.8em; color: var(--primary-blue);">(Editable)</span></label>
+                <input type="number" id="tiempo_aplicado" class="input-highlight" step="0.5" value="5.0" min="0">
+            </div>
+        </div>
+        <div id="area_alert" class="alert"></div>
+
+        <div class="form-group">
+            <label for="intensidad">Intensidad Promedio Espacial (W/cm²)</label>
+            <input type="number" id="intensidad" placeholder="Ej. 1.0" step="0.1" value="1.0" min="0">
+            
+            <div class="gauge-wrapper">
+                <div class="gauge-title">
+                    <span>Termómetro de Dosis</span>
+                    <span id="dosis_status" style="font-weight: 800;">Evaluando...</span>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-wedge"></div>
+                    <div class="gauge-marker" id="intensity_marker"></div>
+                </div>
+                <div id="intensidad_alert" class="alert" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="terapia_principal">Coadyuvante a (Terapia Activa/Manual):</label>
+            <input type="text" id="terapia_principal" placeholder="Ej. Ejercicio terapéutico excéntrico" value="Ejercicio terapéutico">
+            <span class="hint" style="font-style: italic;">escriba que tipo de terapia aplicará junto al US.</span>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Reporte y Teoría -->
+    <div>
+        <div class="card">
+            <h2>2. Reporte Clínico Generado</h2>
+            
+            <textarea id="reporte_output" class="report-area" readonly></textarea>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btn_copiar">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    Copiar
+                </button>
+                <button class="btn btn-secondary" id="btn_descargar">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Descargar .txt
+                </button>
+            </div>
+        </div>
+
+        <div class="theory-box">
+            <h3>Recomendaciones Clínicas</h3>
+            <p>Se recomienda encarecidamente <span class="highlight-text">combinar la aplicación de ultrasonido con ejercicio terapéutico (terapia activa), técnicas manuales, movilización y estiramientos</span>. No debe utilizarse como única estrategia de tratamiento.</p>
+            
+            <!-- Contenido dinámico según pestaña -->
+            <div id="theory-continuo">
+                <ul class="evidence-list">
+                    <li>Existe una <strong>evidencia más robusta</strong> respaldando su uso como <strong>tratamiento de diatermia</strong> (efecto térmico) para mejorar la extensibilidad del colágeno, tratar rigidez articular y aliviar el dolor crónico.</li>
+                </ul>
+            </div>
+
+            <div id="theory-pulsado" style="display: none;">
+                <ul class="evidence-list">
+                    <li>Existe <strong>evidencia moderada</strong> (proveniente de estudios de calidad baja y media) sobre sus beneficios en la recuperación y reparación de <strong>lesiones de tejido blando</strong> en fases agudas y subagudas.</li>
+                </ul>
+                <div class="clinical-pearl">
+                    <strong>💡 Rigor Dosimétrico:</strong><br><br>
+                    • <em>Estimulación Celular:</em> Para una dosis puramente atérmica que estimule cambios en la célula, se suele recomendar una intensidad de <strong>0.5 - 0.75 W/cm²</strong> con un Ciclo de Trabajo al <strong>20%</strong>.<br><br>
+                    • <em>Profundidad Térmica:</em> A igual dosis final, con la <strong>modalidad pulsada</strong> se pueden conseguir efectos térmicos a mayor profundidad que con la modalidad continua. Esto ocurre porque la aplicación continua tiende a absorber y depositar una mayor cantidad de energía en los tejidos superficiales (piel y tejido celular subcutáneo).
+                </div>
+            </div>
+
+            <!-- Referencias fijas -->
+            <div class="references-title">Referencias bibliográficas</div>
+            <ul class="references">
+                <li>ElMeligie M, Ismail M, Yehia A, Sakr H, Amin D. The Effects of Thermal and Pulsed Ultrasound on Pain and Function in Patients with Carpal Tunnel Syndrome: A Randomized Controlled Trial. Am J Phys Med Rehabil. 2024.</li>
+                <li>Dantas L, Osani M, Bannuru R. Therapeutic ultrasound for knee osteoarthritis: A systematic review and meta-analysis with grade quality assessment. Braz J Phys Ther. 2021.</li>
+                <li>Ünver H, Bakılan F, Taşçıoğlu F, Armağan O, Özgen M. Comparing the efficacy of continuous and pulsed ultrasound therapies in patients with lateral epicondylitis: A double-blind, randomized, placebo-controlled study. Turk J Phys Med Rehabil. 2021;67:99-106.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Variables globales de estado
+        let currentMode = 'continuo'; 
+        let autoCalculateTime = true; 
+
+        // Elementos
+        const tabContinuo = document.getElementById('tab-continuo');
+        const tabPulsado = document.getElementById('tab-pulsado');
+        const theoryContinuo = document.getElementById('theory-continuo');
+        const theoryPulsado = document.getElementById('theory-pulsado');
+        const freqEl = document.getElementById('frecuencia');
+        const dutyCycleEl = document.getElementById('duty_cycle');
+        const areSelectEl = document.getElementById('are_select');
+        const areCustomEl = document.getElementById('are_custom');
+        const bnrEl = document.getElementById('bnr');
+        const areaTratarEl = document.getElementById('area_tratar');
+        const tiempoEl = document.getElementById('tiempo_aplicado');
+        const intensidadEl = document.getElementById('intensidad');
+        const terapiaEl = document.getElementById('terapia_principal');
+        const areaAlertEl = document.getElementById('area_alert');
+        const intAlertEl = document.getElementById('intensidad_alert');
+        const reporteEl = document.getElementById('reporte_output');
+        
+        // Botones
+        const btnCopiar = document.getElementById('btn_copiar');
+        const btnDescargar = document.getElementById('btn_descargar');
+        
+        // Gauge
+        const markerEl = document.getElementById('intensity_marker');
+        const statusEl = document.getElementById('dosis_status');
+
+        const TIEMPO_BASE = 5;
+
+        // Función centralizada para cambiar de pestaña
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Estilos de pestañas
+            tabContinuo.classList.remove('active');
+            tabPulsado.classList.remove('active');
+            document.getElementById(`tab-${mode}`).classList.add('active');
+
+            // Mostrar/Ocultar Ciclo de trabajo
+            if (mode === 'pulsado') {
+                document.getElementById('group_duty_cycle').style.display = 'block';
+                document.getElementById('group_duty_cycle_fixed').style.display = 'none';
+            } else {
+                document.getElementById('group_duty_cycle').style.display = 'none';
+                document.getElementById('group_duty_cycle_fixed').style.display = 'block';
+            }
+
+            // Cambiar dinámicamente el texto del marco teórico
+            theoryContinuo.style.display = mode === 'continuo' ? 'block' : 'none';
+            theoryPulsado.style.display = mode === 'pulsado' ? 'block' : 'none';
+
+            // Auto-recalcular al cambiar de pestaña
+            autoCalculateTime = true;
+            calculate();
+        }
+
+        // Listeners para las pestañas
+        tabContinuo.addEventListener('click', () => setMode('continuo'));
+        tabPulsado.addEventListener('click', () => setMode('pulsado'));
+
+        // Listeners generales
+        const inputs = [freqEl, dutyCycleEl, areSelectEl, areCustomEl, bnrEl, areaTratarEl, intensidadEl, terapiaEl];
+        inputs.forEach(input => input.addEventListener('input', () => {
+            // Si cambian el área o el ARE, volvemos a auto-calcular el tiempo
+            if(input.id === 'area_tratar' || input.id === 'are_select' || input.id === 'are_custom') {
+                autoCalculateTime = true;
+            }
+            calculate();
+        }));
+        
+        // Listener específico para el tiempo manual
+        tiempoEl.addEventListener('input', () => {
+            autoCalculateTime = false; // El usuario tomó el control del tiempo
+            calculate();
+        });
+
+        areSelectEl.addEventListener('change', (e) => {
+            areCustomEl.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            autoCalculateTime = true;
+            calculate();
+        });
+
+        function getARE() {
+            return areSelectEl.value === 'custom' ? (parseFloat(areCustomEl.value) || 0) : parseFloat(areSelectEl.value);
+        }
+
+        function evaluateIntensity(intensidad, bnr, mode, freq) {
+            let maxScale = 2.5; 
+            let thresholds = { baja: 0.5, optima: 1.0, alta: 1.5, peligrosa: 2.0 };
+
+            if (mode === 'continuo' && freq === '1') {
+                maxScale = 3.0;
+                thresholds = { baja: 1.0, optima: 1.8, alta: 2.2, peligrosa: 2.5 };
+            } else if (mode === 'continuo' && freq === '3') {
+                maxScale = 2.0;
+                thresholds = { baja: 0.3, optima: 0.6, alta: 1.0, peligrosa: 1.2 };
+            } else if (mode === 'pulsado') {
+                maxScale = 2.5;
+                thresholds = { baja: 0.2, optima: 0.8, alta: 1.2, peligrosa: 1.5 };
+            }
+
+            // Calculo de Intensidad Pico basado en BNR
+            const intensidadPico = intensidad * bnr;
+            
+            let percent = (intensidad / maxScale) * 100;
+            if (percent > 100) percent = 100;
+            markerEl.style.left = `${percent}%`;
+
+            if (intensidad === 0) return { text: "Nula", color: "var(--text-muted)", class: "", msg: "", pico: intensidadPico };
+            
+            // Regla crítica de BNR
+            if (intensidadPico > 8.0) return { 
+                text: "RIESGO DE QUEMADURA", color: "#dc2626", class: "alert-danger", 
+                msg: `CRÍTICO: Con un BNR de ${bnr}, la intensidad pico alcanza ${intensidadPico.toFixed(1)} W/cm². Valores >8.0 W/cm² causan destrucción tisular. Reduzca la intensidad.`, pico: intensidadPico 
+            };
+
+            if (intensidad < thresholds.baja) return { text: "Muy Baja", color: "#3b82f6", class: "alert-warning", msg: "Intensidad sub-terapéutica. Es posible que requiera más tiempo de aplicación.", pico: intensidadPico };
+            if (intensidad <= thresholds.optima) return { text: "Óptima / Segura", color: "#16a34a", class: "alert-success", msg: "Parámetros dentro de la evidencia científica actual.", pico: intensidadPico };
+            if (intensidad <= thresholds.alta) return { text: "Alta (Precaución)", color: "#ca8a04", class: "alert-warning", msg: "Dosis alta. Mantenga movimiento constante para evitar 'hot spots'.", pico: intensidadPico };
+            
+            return { text: "PELIGROSAMENTE ALTA", color: "#dc2626", class: "alert-danger", msg: `RIESGO: Para ${freq}MHz, >${thresholds.peligrosa}W/cm² puede causar daño tisular.`, pico: intensidadPico };
+        }
+
+        function calculate() {
+            const are = getARE();
+            const bnr = parseFloat(bnrEl.value) || 5.0;
+            const area = parseFloat(areaTratarEl.value) || 0;
+            const intensidad = parseFloat(intensidadEl.value) || 0;
+            const freq = freqEl.value;
+            const modeText = currentMode === 'continuo' ? 'Continuo' : 'Pulsado';
+            const dutyCycle = currentMode === 'continuo' ? '100' : dutyCycleEl.value;
+            const terapia = terapiaEl.value.trim() || 'terapia principal';
+
+            areaAlertEl.className = 'alert'; areaAlertEl.style.display = 'none'; areaAlertEl.innerText = '';
+            intAlertEl.className = 'alert'; intAlertEl.style.display = 'none'; intAlertEl.innerText = '';
+
+            if (are <= 0 || area <= 0) {
+                reporteEl.value = 'Faltan datos (ARE o Área) para calcular la dosis y generar el reporte.';
+                statusEl.innerText = 'Esperando datos...';
+                markerEl.style.left = '0%';
+                return;
+            }
+
+            // Alertas Área
+            if (area < (1.5 * are)) {
+                areaAlertEl.innerText = `⚠️ Área (${area}cm²) muy pequeña para el ARE (${are}cm²). Riesgo térmico elevado.`;
+                areaAlertEl.className = 'alert alert-danger';
+            } else if (area > (4 * are)) {
+                areaAlertEl.innerText = `⚠️ Área excede 4x el ARE. La dosis se diluirá, reduciendo la eficacia terapéutica.`;
+                areaAlertEl.className = 'alert alert-warning';
+            }
+
+            // Alertas Intensidad y BNR
+            const intStatus = evaluateIntensity(intensidad, bnr, currentMode, freq);
+            statusEl.innerText = intStatus.text;
+            statusEl.style.color = intStatus.color;
+            if (intStatus.msg) {
+                intAlertEl.innerText = intStatus.msg;
+                intAlertEl.className = `alert ${intStatus.class}`;
+            }
+
+            // Gestión del Tiempo
+            if (autoCalculateTime) {
+                const tiempoCalculado = (area / (2 * are)) * TIEMPO_BASE;
+                tiempoEl.value = tiempoCalculado.toFixed(1);
+            }
+            const tiempoFinal = parseFloat(tiempoEl.value) || 0;
+
+            let advertenciaReporte = "";
+            if (intStatus.class === "alert-danger") {
+                advertenciaReporte = ` [ADVERTENCIA CLÍNICA: Intensidad fuera de rangos de seguridad. Pico espacial calculado: ${intStatus.pico.toFixed(1)} W/cm²].`;
+            }
+
+            // Texto del reporte
+            const reporte = `--- Dosimetría generada con PhysioDoseUS ---\nModalidad: Ultrasonido ${modeText}\nFrecuencia: ${freq} MHz | Ciclo de Trabajo: ${dutyCycle}%\nCabezal ARE: ${are} cm² (BNR max ${bnr}:1)\nÁrea tratada: ${area} cm²\nIntensidad Promedio: ${intensidad} W/cm² (Pico: ${intStatus.pico.toFixed(1)} W/cm²)\nTiempo de aplicación: ${tiempoFinal.toFixed(1)} minutos.${advertenciaReporte}\nPlan: Aplicado como coadyuvante a ${terapia}.`;
+            
+            reporteEl.value = reporte;
+        }
+
+        // Copiar (Compatibilidad iFrame)
+        btnCopiar.addEventListener('click', () => {
+            if (!reporteEl.value || reporteEl.value.includes('Faltan datos')) return;
+            
+            reporteEl.select();
+            reporteEl.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                const original = btnCopiar.innerHTML;
+                btnCopiar.innerHTML = `¡Copiado!`;
+                btnCopiar.style.backgroundColor = 'var(--success-text)';
+                setTimeout(() => { btnCopiar.innerHTML = original; btnCopiar.style.backgroundColor = ''; }, 2000);
+            } catch (err) {
+                console.error('Error al copiar: ', err);
+            }
+            window.getSelection().removeAllRanges();
+        });
+
+        // Descargar TXT
+        btnDescargar.addEventListener('click', () => {
+            if (!reporteEl.value || reporteEl.value.includes('Faltan datos')) return;
+            
+            const textoCompleto = reporteEl.value + "\n\nAutores: Dr. Juan Serrano-Ferrer, Dr. Jorge Cazorla Gonzalez, Nil Jordà Boixet, Nuria Puigtió Rebollo, Xavier Garcia Rodriguez\nContacto: jserrano@euses.cat";
+            const blob = new Blob([textoCompleto], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            const date = new Date();
+            const dateString = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
+            
+            a.href = url;
+            a.download = `PhysioDoseUS_Reporte_${dateString}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Inicializar
+        calculate();
+    });
+</script>
+</body>
+</html>
